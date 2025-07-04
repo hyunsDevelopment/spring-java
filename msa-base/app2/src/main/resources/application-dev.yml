@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: app2
+  config:
+    import:
+      - classpath:nice/Nice.yml
+      - classpath:nice/Nice-cert.yml
+server:
+  port: 10020
+springdoc:
+  swagger-ui:
+    path: /

@@ -1,0 +1,22 @@
+jasypt:
+  encryptor:
+    password: foresys**
+    algorithm: PBEWithMD5AndDES
+    key-obtention-iterations: 1000
+    pool-size: 1
+    provider-name: SunJCE
+    salt-generator-classname: org.jasypt.salt.RandomSaltGenerator
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator
+    string-output-type: base64
+    bean: jasyptEncryptorAES
+jwt:
+  encryptor:
+    id-claim-key: id
+    type-claim-key: type
+    secret-key: foresys**
+  access:
+    time-out: 1800    #단위(초)
+    name-prefix: X-AUTH-ATOKEN
+  refresh:
+    time-out: 2400    #단위(초)
+    name-prefix: X-AUTH-RTOKEN

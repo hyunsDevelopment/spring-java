@@ -1,0 +1,17 @@
+nice:
+  server:
+    use-proxy: Y
+    proxy-name: 172.16.32.14
+    proxy-port: 1080
+    dev:
+      server-name: !!str 10.95.50.53
+      server-port10: 20184
+      server-port: 20184
+      server-timeout: 10000    #단위: ms
+    real:
+      server-name: !!str 10.95.50.53
+      server-port10: 20184
+      server-port: 20184
+      server-timeout: 10000    #단위: ms
+  encode:
+    char-set: EUC-KR

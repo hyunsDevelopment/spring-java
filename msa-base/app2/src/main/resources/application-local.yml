@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: app2
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: app1
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+      enable-auto-commit: true
+  config:
+    import:
+      - classpath:nice/Nice.yml
+      - classpath:nice/Nice-cert.yml
+server:
+  port: 10020
+springdoc:
+  swagger-ui:
+    path: /
