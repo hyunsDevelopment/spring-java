@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: app1
+  config:
+    import:
+      - classpath:core-dev.yml
+      - classpath:config/mybatis/mybatis.yml
+      - classpath:config/db/database-dev.yml
+      - classpath:config/logback/logback-dev.yml
+server:
+  port: 10010
+springdoc:
+  swagger-ui:
+    path: /

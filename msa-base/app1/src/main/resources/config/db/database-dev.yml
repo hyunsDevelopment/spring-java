@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    jdbc-url: jdbc:oracle:thin:@192.168.0.105:1521/orcl
+    username: FORESYS
+    password: foresys#@1
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    database: oracle
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        jdbc.lob.non_contextual_creation: true
+logging:
+  level:
+    org.hibernate: info
+    org.hibernate.type: trace
+pagehelper:
+  # 사용할 DB (mysql, oracle, postgresql 등)
+  helper-dialect: oracle
+  # 페이지 번호가 0 이하일 때 자동으로 1페이지로 조정
+  reasonable: true
+  # Mapper 메서드 파라미터에서도 PageHelper 적용 가능
+  support-methods-arguments: true
+  # COUNT 쿼리 실행 여부 설정
+  params: count=countSql
