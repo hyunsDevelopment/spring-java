@@ -1,0 +1,20 @@
+services:
+  redis-sequence:
+    image: redis:7.2
+    container_name: redis-sequence
+    ports:
+      - "6379:6379"  # 호스트에서 Redis sequence 접근을 위한 포트 매핑
+
+    # AOF 기능 활성화 (쓰기 로그 저장)
+    # 1초마다 디스크에 동기화 (기본값, 권장)
+    # RDB 스냅샷 비활성화 (성능 최적화)
+    # AOF 파일 앞부분에 RDB 포맷을 포함 (복구 속도 향상)
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --save ""
+      --aof-use-rdb-preamble yes
+    volumes:
+      - ./redis-sequence-data:/data         # AOF 파일 저장용 볼륨
+    restart: unless-stopped             # 수동으로 중단하지 않는 이상 자동 재시작
