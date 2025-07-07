@@ -18,6 +18,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -126,9 +127,7 @@ public class FullTextComponent {
                             || (type == LenType.BODY && ft.bodyLenField())
                     ) {
                         field.setAccessible(true);
-                        int len = StringUtil.getToInt(field.get(obj));
-
-                        return len;
+                        return StringUtil.getToInt(field.get(obj));
                     }
                 }
             }
@@ -193,7 +192,8 @@ public class FullTextComponent {
         Field[] fields = obj.getClass().getDeclaredFields();
         for(Field field : fields) {
             field.setAccessible(true);
-            if(field.get(obj) instanceof List<?> l) {
+            Object fieldValue = field.get(obj);
+            if(fieldValue instanceof List<?> l) {
                 for(Object cObj : l) {
                     ByteArrayVO cByteArrayVO = this.getByteArray(cObj, charset);
                     byteArrayVO.setBytes(PadUtil.assemblyBytes(byteArrayVO.getBytes(), cByteArrayVO.getBytes()));
@@ -203,12 +203,16 @@ public class FullTextComponent {
                 if(field.getAnnotation(FullTextField.class) != null && field.getAnnotation(FullTextField.class).length() > 0) {
                     FullTextField ft = field.getAnnotation(FullTextField.class);
                     byte[] value = new byte[0];
-                    if(!field.getType().getSimpleName().isEmpty() && "int|integer|long".contains(field.getType().getSimpleName().toLowerCase()))
-                        value = PadUtil.lpad(field.get(obj) != null ? field.get(obj).toString() : "", '0', ft.length(), charset);
+
+                    String typeName = field.getType().getSimpleName();
+                    String stringValue = fieldValue != null ? fieldValue.toString() : "";
+
+                    if(!typeName.isEmpty() && "int|integer|long".contains(typeName.toLowerCase()))
+                        value = PadUtil.lpad(stringValue, '0', ft.length(), charset);
                     else if(ft.pad() == PadType.LEFT)
-                        value = PadUtil.lpad(field.get(obj) != null ? field.get(obj).toString() : "", ft.padChar(), ft.length(), charset);
+                        value = PadUtil.lpad(stringValue, ft.padChar(), ft.length(), charset);
                     else if(ft.pad() == PadType.RIGHT)
-                        value = PadUtil.rpad(field.get(obj) != null ? field.get(obj).toString() : "", ft.padChar(), ft.length(), charset);
+                        value = PadUtil.rpad(stringValue, ft.padChar(), ft.length(), charset);
                     byteArrayVO.setBytes(PadUtil.assemblyBytes(byteArrayVO.getBytes(), value));
                     if(ft.exceptLenField())
                         byteArrayVO.setExceptLen(byteArrayVO.getExceptLen() + value.length);
@@ -221,52 +225,54 @@ public class FullTextComponent {
 
     public ObjectVO getObject(@NotNull Object obj, @NotNull byte[] data, int index, String charset) throws Exception {
         Field[] fields = obj.getClass().getDeclaredFields();
-        List<Map<String, Object>> cntList = new ArrayList<>();
-        for(Field field : fields) {
+
+        Map<String, Integer> countMap = new HashMap<>();
+
+        for (Field field : fields) {
             field.setAccessible(true);
-            if(List.class.isAssignableFrom(field.getType())) {
-                List<Object> tmp = new ArrayList<>();
-                for(Map<String, Object> tmpMap : cntList) {
-                    if(StringUtil.getStringInMap(tmpMap, "nm").equals(field.getName())) {
-                        int cnt = StringUtil.getIntValueInMap(tmpMap, "cnt");
-                        for(int i = 0; i < cnt; i++) {
-                            Object cObj = Class.forName(((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0].getTypeName()).getConstructor().newInstance();
-                            ObjectVO tObj = getObject(cObj, data, index, charset);
-                            tmp.add(tObj.getObj());
-                            index = tObj.getIndex();
-                        }
+
+            // List 필드 처리
+            if (List.class.isAssignableFrom(field.getType())) {
+                List<Object> list = new ArrayList<>();
+                Integer cnt = countMap.get(field.getName());
+
+                if (cnt != null && cnt > 0) {
+                    Class<?> listElementClass = Class.forName(((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0].getTypeName());
+
+                    for (int i = 0; i < cnt; i++) {
+                        Object cObj = listElementClass.getDeclaredConstructor().newInstance();
+                        ObjectVO tObj = getObject(cObj, data, index, charset);
+                        list.add(tObj.getObj());
+                        index = tObj.getIndex();
                     }
                 }
-                field.set(obj, tmp);
-            }else if(field.getAnnotation(FullTextField.class) != null && field.getAnnotation(FullTextField.class).length() > 0) {
-                FullTextField ft = field.getAnnotation(FullTextField.class);
-                byte[] tmp = new byte[ft.length()];
-                if(data.length >= (index + tmp.length)) {
-                    System.arraycopy(data, index, tmp, 0, tmp.length);
-                    String value = new String(tmp, charset).strip();
-                    switch (field.getType().getSimpleName().toLowerCase()) {
-                        case "int":
-                        case "integer":
-                            field.set(obj, StringUtil.getToInt(value));
-                            break;
-                        case "long":
-                            field.set(obj, StringUtil.getToLong(value));
-                            break;
-                        case "float":
-                            field.set(obj, StringUtil.getToFloat(value));
-                            break;
-                        case "double":
-                            field.set(obj, StringUtil.getToDouble(value));
-                            break;
-                        default:
-                            field.set(obj, field.getType().cast(value));
-                            break;
-                    }
-                    index += tmp.length;
-                    if(!ft.tgtListFieldName().isEmpty()) {
-                        cntList.add(Map.of("nm", ft.tgtListFieldName(), "cnt", field.get(obj)));
-                    }
-                }
+                field.set(obj, list);
+                continue;
+            }
+
+            // 일반 필드 처리
+            FullTextField ft = field.getAnnotation(FullTextField.class);
+            if (ft == null || ft.length() <= 0) continue;
+
+            byte[] tmp = new byte[ft.length()];
+            if (data.length < index + ft.length()) continue;
+
+            System.arraycopy(data, index, tmp, 0, tmp.length);
+            String value = new String(tmp, charset).strip();
+
+            Object parsedValue = switch (field.getType().getSimpleName().toLowerCase()) {
+                case "int", "integer" -> StringUtil.getToInt(value);
+                case "long" -> StringUtil.getToLong(value);
+                case "float" -> StringUtil.getToFloat(value);
+                case "double" -> StringUtil.getToDouble(value);
+                default -> field.getType().cast(value);
+            };
+
+            field.set(obj, parsedValue);
+            index += tmp.length;
+
+            if (!ft.tgtListFieldName().isEmpty()) {
+                countMap.put(ft.tgtListFieldName(), parsedValue instanceof Number ? ((Number) parsedValue).intValue() : 0);
             }
         }
 
