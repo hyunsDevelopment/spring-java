@@ -28,47 +28,43 @@ import java.util.Map;
 public class FullTextComponent {
 
     public Object getReqHead(@NotNull Object obj) throws NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
-        FullTextInfo fti = obj.getClass().getAnnotation(FullTextInfo.class);
-        if(fti != null) {
-            if(fti.reqHeadClass() == Void.class)
-                return null;
-
-            Object reqHead = fti.reqHeadClass().getConstructor().newInstance();
-
-            HeadValue[] values = fti.headValues();
-            for(HeadValue headValue : values) {
-                Field[] fields = reqHead.getClass().getDeclaredFields();
-                for(Field field : fields) {
-                    if(field.getName().equals(headValue.name())) {
-                        field.setAccessible(true);
-                        switch (field.getType().getSimpleName().toLowerCase()) {
-                            case "int":
-                            case "integer":
-                                field.set(reqHead, StringUtil.getToInt(headValue.value()));
-                                break;
-                            case "long":
-                                field.set(reqHead, StringUtil.getToLong(headValue.value()));
-                                break;
-                            case "float":
-                                field.set(reqHead, StringUtil.getToFloat(headValue.value()));
-                                break;
-                            case "double":
-                                field.set(reqHead, StringUtil.getToDouble(headValue.value()));
-                                break;
-                            default:
-                                field.set(reqHead, field.getType().cast(headValue.value()));
-                                break;
-                        }
-                        break;
-                    }
-                }
-            }
-
-            return reqHead;
-        }
-
+    FullTextInfo fti = obj.getClass().getAnnotation(FullTextInfo.class);
+    if (fti == null || fti.reqHeadClass() == Void.class) {
         return null;
     }
+
+    // 1. reqHead 객체 생성
+    Object reqHead = fti.reqHeadClass().getDeclaredConstructor().newInstance();
+
+    // 2. 필드 캐시 (Map<String, Field>)
+    Field[] declaredFields = reqHead.getClass().getDeclaredFields();
+    Map<String, Field> fieldMap = new HashMap<>();
+    for (Field field : declaredFields) {
+        field.setAccessible(true);
+        fieldMap.put(field.getName(), field);
+    }
+
+    // 3. HeadValue 설정
+    for (HeadValue headValue : fti.headValues()) {
+        Field field = fieldMap.get(headValue.name());
+        if (field == null) continue;
+
+        String typeName = field.getType().getSimpleName().toLowerCase();
+        String rawValue = headValue.value();
+
+        Object parsedValue = switch (typeName) {
+            case "int", "integer" -> StringUtil.getToInt(rawValue);
+            case "long"           -> StringUtil.getToLong(rawValue);
+            case "float"          -> StringUtil.getToFloat(rawValue);
+            case "double"         -> StringUtil.getToDouble(rawValue);
+            default               -> field.getType().cast(rawValue);
+        };
+
+        field.set(reqHead, parsedValue);
+    }
+
+    return reqHead;
+}
 
     public Class<?> getReqHeadClass(@NotNull Object obj) {
         FullTextInfo fti = obj.getClass().getAnnotation(FullTextInfo.class);
