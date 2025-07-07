@@ -6,7 +6,6 @@ import com.foresys.app2.fulltext.annotation.HeadValue;
 import com.foresys.app2.fulltext.model.ByteArrayVO;
 import com.foresys.app2.fulltext.model.ObjectVO;
 import com.foresys.app2.fulltext.type.LenType;
-import com.foresys.app2.fulltext.type.PadType;
 import com.foresys.core.util.PadUtil;
 import com.foresys.core.util.StringUtil;
 import jakarta.validation.constraints.NotNull;
@@ -32,10 +31,10 @@ public class FullTextComponent {
         if (fti == null || fti.reqHeadClass() == Void.class) {
             return null;
         }
-    
+
         // 1. reqHead 객체 생성
         Object reqHead = fti.reqHeadClass().getDeclaredConstructor().newInstance();
-    
+
         // 2. 필드 캐시 (Map<String, Field>)
         Field[] declaredFields = reqHead.getClass().getDeclaredFields();
         Map<String, Field> fieldMap = new HashMap<>();
@@ -43,26 +42,18 @@ public class FullTextComponent {
             field.setAccessible(true);
             fieldMap.put(field.getName(), field);
         }
-    
+
         // 3. HeadValue 설정
         for (HeadValue headValue : fti.headValues()) {
             Field field = fieldMap.get(headValue.name());
             if (field == null) continue;
-    
-            String typeName = field.getType().getSimpleName().toLowerCase();
+
             String rawValue = headValue.value();
-    
-            Object parsedValue = switch (typeName) {
-                case "int", "integer" -> StringUtil.getToInt(rawValue);
-                case "long"           -> StringUtil.getToLong(rawValue);
-                case "float"          -> StringUtil.getToFloat(rawValue);
-                case "double"         -> StringUtil.getToDouble(rawValue);
-                default               -> field.getType().cast(rawValue);
-            };
-    
+            Object parsedValue = convertStringToFieldType(field.getType(), rawValue);
+
             field.set(reqHead, parsedValue);
         }
-    
+
         return reqHead;
     }
 
@@ -263,14 +254,7 @@ public class FullTextComponent {
 
             System.arraycopy(data, index, tmp, 0, tmp.length);
             String value = new String(tmp, charset).strip();
-
-            Object parsedValue = switch (field.getType().getSimpleName().toLowerCase()) {
-                case "int", "integer" -> StringUtil.getToInt(value);
-                case "long" -> StringUtil.getToLong(value);
-                case "float" -> StringUtil.getToFloat(value);
-                case "double" -> StringUtil.getToDouble(value);
-                default -> field.getType().cast(value);
-            };
+            Object parsedValue = convertStringToFieldType(field.getType(), value);
 
             field.set(obj, parsedValue);
             index += tmp.length;
@@ -284,6 +268,20 @@ public class FullTextComponent {
                 .obj(obj)
                 .index(index)
                 .build();
+    }
+
+    private static Object convertStringToFieldType(Class<?> type, String value) {
+        if (value == null) return null;
+
+        String typeName = type.getSimpleName().toLowerCase();
+
+        return switch (typeName) {
+            case "int", "integer" -> StringUtil.getToInt(value);
+            case "long"           -> StringUtil.getToLong(value);
+            case "float"          -> StringUtil.getToFloat(value);
+            case "double"         -> StringUtil.getToDouble(value);
+            default               -> type.cast(value);
+        };
     }
 
 }
