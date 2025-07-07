@@ -190,33 +190,41 @@ public class FullTextComponent {
         ByteArrayVO byteArrayVO = new ByteArrayVO();
 
         Field[] fields = obj.getClass().getDeclaredFields();
-        for(Field field : fields) {
+        for (Field field : fields) {
             field.setAccessible(true);
             Object fieldValue = field.get(obj);
-            if(fieldValue instanceof List<?> l) {
-                for(Object cObj : l) {
-                    ByteArrayVO cByteArrayVO = this.getByteArray(cObj, charset);
-                    byteArrayVO.setBytes(PadUtil.assemblyBytes(byteArrayVO.getBytes(), cByteArrayVO.getBytes()));
-                    byteArrayVO.setExceptLen(byteArrayVO.getExceptLen() + cByteArrayVO.getExceptLen());
-                }
-            }else {
-                if(field.getAnnotation(FullTextField.class) != null && field.getAnnotation(FullTextField.class).length() > 0) {
-                    FullTextField ft = field.getAnnotation(FullTextField.class);
-                    byte[] value = new byte[0];
 
-                    String typeName = field.getType().getSimpleName();
-                    String stringValue = fieldValue != null ? fieldValue.toString() : "";
-
-                    if(!typeName.isEmpty() && "int|integer|long".contains(typeName.toLowerCase()))
-                        value = PadUtil.lpad(stringValue, '0', ft.length(), charset);
-                    else if(ft.pad() == PadType.LEFT)
-                        value = PadUtil.lpad(stringValue, ft.padChar(), ft.length(), charset);
-                    else if(ft.pad() == PadType.RIGHT)
-                        value = PadUtil.rpad(stringValue, ft.padChar(), ft.length(), charset);
-                    byteArrayVO.setBytes(PadUtil.assemblyBytes(byteArrayVO.getBytes(), value));
-                    if(ft.exceptLenField())
-                        byteArrayVO.setExceptLen(byteArrayVO.getExceptLen() + value.length);
+            // 리스트 필드 처리
+            if (fieldValue instanceof List<?> list) {
+                for (Object item : list) {
+                    ByteArrayVO childByteArray = this.getByteArray(item, charset);
+                    byteArrayVO.setBytes(PadUtil.assemblyBytes(byteArrayVO.getBytes(), childByteArray.getBytes()));
+                    byteArrayVO.setExceptLen(byteArrayVO.getExceptLen() + childByteArray.getExceptLen());
                 }
+                continue;
+            }
+
+            // 일반 필드 처리
+            FullTextField ft = field.getAnnotation(FullTextField.class);
+            if (ft == null || ft.length() <= 0) continue;
+
+            String stringValue = fieldValue != null ? fieldValue.toString() : "";
+            String typeName = field.getType().getSimpleName().toLowerCase();
+
+            byte[] value;
+            if (typeName.equals("int") || typeName.equals("integer") || typeName.equals("long")) {
+                value = PadUtil.lpad(stringValue, '0', ft.length(), charset);
+            } else {
+                char padChar = ft.padChar();
+                value = switch (ft.pad()) {
+                    case LEFT -> PadUtil.lpad(stringValue, padChar, ft.length(), charset);
+                    case RIGHT -> PadUtil.rpad(stringValue, padChar, ft.length(), charset);
+                };
+            }
+
+            byteArrayVO.setBytes(PadUtil.assemblyBytes(byteArrayVO.getBytes(), value));
+            if (ft.exceptLenField()) {
+                byteArrayVO.setExceptLen(byteArrayVO.getExceptLen() + value.length);
             }
         }
 
