@@ -1,7 +1,7 @@
 # spring-java
 spring + java repository
 
-1. batch-sample
+1. batch-sample\n
 Spring Batch의 기본 구조와 실행 흐름을 이해하기 위한 샘플 프로젝트입니다.
 Job → Step → Tasklet 구조를 바탕으로 배치 처리 과정을 구현했습니다.
 간단한 CSV 파일 읽기, 데이터 가공, 콘솔 출력 또는 DB 저장 등의 흐름을 포함합니다.
