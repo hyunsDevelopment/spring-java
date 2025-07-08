@@ -6,7 +6,7 @@ spring + java repository
   Job → Step → Tasklet 구조를 바탕으로 배치 처리 과정을 구현했습니다.<br>
   간단한 CSV 파일 읽기, 데이터 가공, 콘솔 출력 또는 DB 저장 등의 흐름을 포함합니다.<br>
   JobLauncher를 이용한 수동 실행 및 @Scheduled 기반의 정기 실행 방식도 포함되어 있어 실무 배치 기초를 테스트하기에 적합합니다.<br>
-  Spring Batch 메타데이터 테이블 자동 생성 및 H2/MySQL 연동 예제도 함께 제공합니다.<br>
+  Spring Batch 메타데이터 테이블 자동 생성 및 H2 연동 예제도 함께 제공합니다.<br>
 
 3. kiwoom-app<br>
   전통적인 Spring MVC 구조를 기반으로 하는 모놀리식 서버 애플리케이션의 초기 세팅 프로젝트입니다.<br>
