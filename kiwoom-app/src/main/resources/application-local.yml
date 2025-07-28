@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: kiwoom-local
+  config:
+    import:
+      - classpath:config/fsb/env-local.properties
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    jdbc-url: jdbc:oracle:thin:@192.168.0.132:1521/ORCLPDB1
+    username: FORESYS
+    password: ENC(RzzmOO/k9UjrqwqKTwknlg==)
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    database: oracle
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        jdbc.lob.non_contextual_creation: true
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  config-location: classpath:config/mybatis/mybatis-config.xml
+  type-aliases-package: com.kiwoom.**.model
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+jasypt:
+  encryptor:
+    password: e0ee26b0-ebc9-4cc5-8581-bde27c3b8eeb
+    algorithm: PBEWithMD5AndDES
+    key-obtention-iterations: 1000
+    pool-size: 1
+    provider-name: SunJCE
+    salt-generator-classname: org.jasypt.salt.RandomSaltGenerator
+    iv-generator-classname: org.jasypt.iv.NoIvGenerator
+    string-output-type: base64
+    bean: jasyptStringEncryptor
+
+jwt:
+  encryptor:
+    id-claim-key: id
+    type-claim-key: type
+    secret-key: a229452d-501c-49cf-a0eb-30d98bcbc7b9
+  access:
+    time-out: 1800
+    name-prefix: X-AUTH-ATOKEN
+  refresh:
+    time-out: 86400
+    name-prefix: X-AUTH-RTOKEN
+  # TODO 로그인이 필요하지 않은 uri 패턴 등록 필요
+  exclude-paths:
+    - /auth/login
+
+juso:
+  base-url: https://business.juso.go.kr
+  api-key: devU01TX0FVVEgyMDI1MDMzMTE0NTYyMzExNTU5Mzk=
